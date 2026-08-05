@@ -1,0 +1,122 @@
+{
+  "package_manager": {
+    "\\b(?:yum|dnf)\\b": "apt"
+  },
+  "commands": {
+    "\\bservice\\s+(\\S+)\\s+(start|stop|restart|status|reload|force-reload)": "systemctl \\2 \\1",
+    "\\bchkconfig\\s+--add\\s+(\\S+)": "systemctl enable \\1",
+    "\\bchkconfig\\s+(\\S+)\\s+on": "systemctl enable \\1",
+    "\\bchkconfig\\s+(\\S+)\\s+off": "systemctl disable \\1"
+  },
+  "package_names": {
+    "(?<![A-Za-z0-9_.-])redis(?![A-Za-z0-9_.-])": "redis-server"
+  },
+  "risk_patterns": [
+    {
+      "id": "x86_64-literal",
+      "pattern": "\\bx86_64\\b",
+      "severity": "medium",
+      "message": "脚本包含 x86_64 架构字符串，可能按 x86 分支执行。",
+      "suggestion": "确认判断逻辑，并补充 arm64 / aarch64 分支。"
+    },
+    {
+      "id": "arch-probe",
+      "pattern": "\\buname\\s+-m\\b|\\buname\\s+-p\\b",
+      "severity": "medium",
+      "message": "脚本探测硬件架构，需要确保 arm64 / aarch64 分支存在。",
+      "suggestion": "在信创环境验证 uname -m 输出为 aarch64 时的分支行为。"
+    },
+    {
+      "id": "forced-amd64",
+      "pattern": "--platform\\s+linux/amd64",
+      "severity": "high",
+      "message": "Docker 强制使用 linux/amd64 平台，ARM 环境无法直接运行。",
+      "suggestion": "改用 --platform linux/arm64，或确认该镜像存在 arm64 版本。"
+    },
+    {
+      "id": "x86-rpm",
+      "pattern": "\\.x86_64\\.rpm\\b",
+      "severity": "high",
+      "message": "引用 x86_64 架构的 rpm 包，无法在 ARM 环境直接安装。",
+      "suggestion": "改用 arm64 / aarch64 对应包，或通过国产软件源使用 apt/deb 安装。"
+    },
+    {
+      "id": "rpm-install",
+      "pattern": "\\brpm\\s+-[Uivh]+\\b",
+      "severity": "medium",
+      "message": "直接使用 rpm 安装，需要与目标架构匹配的软件包。",
+      "suggestion": "优先使用 apt 安装，或从国产软件源获取 arm64 对应包。"
+    },
+    {
+      "id": "lib64-path",
+      "pattern": "/usr/lib64\\b",
+      "severity": "medium",
+      "message": "硬编码 x86 64 位库路径 /usr/lib64。",
+      "suggestion": "在 ARM 环境改用 /usr/lib/aarch64-linux-gnu 等实际路径，或使用 ldconfig 动态解析。"
+    },
+    {
+      "id": "firewalld",
+      "pattern": "\\bfirewall-cmd\\b",
+      "severity": "medium",
+      "message": "UOS / Kylin 默认可能未安装或未启用 firewalld。",
+      "suggestion": "确认目标系统防火墙方案，必要时改用 ufw 或系统自带安全模块。"
+    },
+    {
+      "id": "selinux",
+      "pattern": "\\bselinux\\b",
+      "severity": "low",
+      "message": "银河麒麟使用自身安全机制，SELinux 相关命令可能不适用。",
+      "suggestion": "根据目标系统安全策略核对命令是否仍有效。"
+    },
+    {
+      "id": "yum-remnant",
+      "pattern": "\\b(?:yum|dnf)\\b",
+      "severity": "low",
+      "message": "脚本中仍存在 yum / dnf 命令残留。",
+      "suggestion": "确认是否位于字符串、注释或转换器无法覆盖的上下文中。"
+    }
+  ],
+  "image_risks": [
+    {
+      "id": "redis-6-image",
+      "pattern": "\\bredis:6(?:\\.[0-9]+)?\\b",
+      "severity": "medium",
+      "message": "redis:6 为较旧镜像，ARM 兼容性一般。",
+      "suggestion": "升级到多架构高版本镜像（如 redis:7-alpine）或使用国产软件源中的 Redis 替代组件，业务验证后上线。",
+      "recommendation": "redis-image"
+    },
+    {
+      "id": "mysql-57-image",
+      "pattern": "\\bmysql:5\\.[0-9]+(?:\\.[0-9]+)?\\b",
+      "severity": "medium",
+      "message": "MySQL 5.x 官方镜像缺少可靠的 ARM64 支持。",
+      "suggestion": "评估迁移到 openGauss、GreatSQL 或 OceanBase 社区版等国产数据库，业务验证后上线。",
+      "recommendation": "database-replacement"
+    },
+    {
+      "id": "mysql-80-image",
+      "pattern": "\\bmysql:8\\.0(?:[.-][0-9]+)?\\b",
+      "severity": "low",
+      "message": "MySQL 8.0 部分版本提供多架构镜像，需确认所选 tag 支持 arm64。",
+      "suggestion": "确认镜像 manifest 包含 linux/arm64，或改用国产数据库替代方案。",
+      "recommendation": "database-replacement"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "redis-image",
+      "topic": "Redis 镜像",
+      "message": "建议优先使用官方多架构高版本镜像，或从统信 / 麒麟软件源安装 Redis 替代组件；涉及业务数据时先做兼容性验证。"
+    },
+    {
+      "id": "database-replacement",
+      "topic": "数据库替代",
+      "message": "国产数据库替代需结合业务验证：可评估 openGauss、GreatSQL、OceanBase 社区版等方案，不建议在未验证前直接切换。"
+    },
+    {
+      "id": "apt-source",
+      "topic": "软件包来源",
+      "message": "优先使用统信 UOS 或银河麒麟官方软件源中的 arm64 软件包，避免使用来源不明的第三方包。"
+    }
+  ]
+}
