@@ -1,4 +1,4 @@
 interface:
-  display_name: "信创命令兼容转换器"
-  short_description: "将 CentOS/x86 的 Shell 与 Docker 脚本转换为统信 UOS、银河麒麟 ARM 环境可执行脚本"
-  default_prompt: "Use $xinchuang-command-converter to convert this CentOS shell or Docker script for a Kunpeng ARM + UOS/Kylin environment."
+  display_name: "信创命令转换器"
+  short_description: "将 CentOS/x86 的 Shell 与 Docker 脚本转换为统信 UOS、银河麒麟、欧拉 OS ARM 环境可执行脚本"
+  default_prompt: "Use $xinchuang-command-converter to convert this CentOS shell or Docker script for a Kunpeng ARM UOS/Kylin/Euler environment."

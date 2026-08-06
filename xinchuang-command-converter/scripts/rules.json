@@ -1,17 +1,55 @@
 {
-  "package_manager": {
-    "\\b(?:yum|dnf)\\b": "apt"
-  },
-  "commands": {
-    "\\bservice\\s+(\\S+)\\s+(start|stop|restart|status|reload|force-reload)": "systemctl \\2 \\1",
-    "\\bchkconfig\\s+--add\\s+(\\S+)": "systemctl enable \\1",
-    "\\bchkconfig\\s+(\\S+)\\s+on": "systemctl enable \\1",
-    "\\bchkconfig\\s+(\\S+)\\s+off": "systemctl disable \\1"
-  },
-  "package_names": {
-    "(?<![A-Za-z0-9_.-])redis(?![A-Za-z0-9_.-])": "redis-server"
-  },
+  "notice": "转换完成脚本务必人工复测后上生产环境。",
+  "package_manager": [
+    {
+      "pattern": "\\b(?:yum|dnf)\\b",
+      "replacement": "apt",
+      "description": "包管理器 yum/dnf 替换为 apt",
+      "note": "统信 UOS、银河麒麟、欧拉 OS 的软件源基于 Debian 体系，软件包统一使用 apt 管理。"
+    }
+  ],
+  "commands": [
+    {
+      "pattern": "\\bservice\\s+(\\S+)\\s+(start|stop|restart|status|reload|force-reload)",
+      "replacement": "systemctl \\2 \\1",
+      "description": "service 服务管理命令适配为 systemctl",
+      "note": "信创国产系统默认使用 systemd，服务生命周期统一由 systemctl 管理。"
+    },
+    {
+      "pattern": "\\bchkconfig\\s+--add\\s+(\\S+)",
+      "replacement": "systemctl enable \\1",
+      "description": "chkconfig --add 适配为 systemctl enable",
+      "note": "开机自启在 systemd 中通过 systemctl enable 配置。"
+    },
+    {
+      "pattern": "\\bchkconfig\\s+(\\S+)\\s+on",
+      "replacement": "systemctl enable \\1",
+      "description": "chkconfig 开启自启适配为 systemctl enable",
+      "note": "开机自启在 systemd 中通过 systemctl enable 配置。"
+    },
+    {
+      "pattern": "\\bchkconfig\\s+(\\S+)\\s+off",
+      "replacement": "systemctl disable \\1",
+      "description": "chkconfig 关闭自启适配为 systemctl disable",
+      "note": "取消开机自启在 systemd 中通过 systemctl disable 配置。"
+    }
+  ],
+  "package_names": [
+    {
+      "pattern": "(?<![A-Za-z0-9_.-])redis(?![A-Za-z0-9_.-])",
+      "replacement": "redis-server",
+      "description": "apt 软件包名修正 redis -> redis-server",
+      "note": "Debian 系软件源中 Redis 服务端包名为 redis-server，需在目标环境确认可用版本。"
+    }
+  ],
   "risk_patterns": [
+    {
+      "id": "docker-arm-check",
+      "pattern": "\\bdocker\\s+(?:run|create|build|pull)\\b",
+      "severity": "medium",
+      "message": "Docker 命令涉及的镜像需确认是否存在 ARM 架构版本。",
+      "suggestion": "执行前确认镜像 manifest 包含 linux/arm64；无 ARM 版本时应改用国产替代镜像或基于源码构建。"
+    },
     {
       "id": "x86_64-literal",
       "pattern": "\\bx86_64\\b",
@@ -58,14 +96,14 @@
       "id": "firewalld",
       "pattern": "\\bfirewall-cmd\\b",
       "severity": "medium",
-      "message": "UOS / Kylin 默认可能未安装或未启用 firewalld。",
+      "message": "UOS / Kylin / Euler 默认可能未安装或未启用 firewalld。",
       "suggestion": "确认目标系统防火墙方案，必要时改用 ufw 或系统自带安全模块。"
     },
     {
       "id": "selinux",
       "pattern": "\\bselinux\\b",
       "severity": "low",
-      "message": "银河麒麟使用自身安全机制，SELinux 相关命令可能不适用。",
+      "message": "国产系统使用自身安全机制，SELinux 相关命令可能不适用。",
       "suggestion": "根据目标系统安全策略核对命令是否仍有效。"
     },
     {
@@ -106,7 +144,7 @@
     {
       "id": "redis-image",
       "topic": "Redis 镜像",
-      "message": "建议优先使用官方多架构高版本镜像，或从统信 / 麒麟软件源安装 Redis 替代组件；涉及业务数据时先做兼容性验证。"
+      "message": "建议优先使用官方多架构高版本镜像，或从统信 / 麒麟 / 欧拉软件源安装 Redis 替代组件；涉及业务数据时先做兼容性验证。"
     },
     {
       "id": "database-replacement",
@@ -116,7 +154,7 @@
     {
       "id": "apt-source",
       "topic": "软件包来源",
-      "message": "优先使用统信 UOS 或银河麒麟官方软件源中的 arm64 软件包，避免使用来源不明的第三方包。"
+      "message": "优先使用统信 UOS、银河麒麟或欧拉 OS 官方软件源中的 arm64 软件包，避免使用来源不明的第三方包。"
     }
   ]
 }
